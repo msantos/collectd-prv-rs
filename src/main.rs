@@ -1,5 +1,6 @@
 use clap::Parser;
 use gethostname::gethostname;
+use std::error::Error;
 use std::io;
 use std::io::Write;
 use std::process::exit;
@@ -13,8 +14,8 @@ const HOSTNAME_MAX_LEN: usize = 16;
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// collectd service: <plugin>/<type>
-    #[clap(short, long, default_value = "stdout/prv")]
-    service: String,
+    #[clap(short, long, default_value = "stdout/prv", value_parser = parse_service::<String, String>)]
+    service: (String, String),
 
     /// system hostname
     #[clap(short = 'H', long, default_value = "")]
@@ -45,6 +46,27 @@ struct Args {
     verbose: bool,
 }
 
+fn parse_service<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
+where
+    T: std::str::FromStr,
+    T::Err: Error + Send + Sync + 'static,
+    U: std::str::FromStr,
+    U::Err: Error + Send + Sync + 'static,
+{
+    let pos = s
+        .find('/')
+        .ok_or_else(|| format!("invalid plugin/type: no `/` found in `{}`", s))?;
+
+    if pos >= DATA_MAX_LEN || s[pos + 1..].len() >= DATA_MAX_LEN {
+        Err(format!("invalid service: {}", s))?;
+    }
+
+    let plugin = s[..pos].parse()?;
+    let ctype = s[pos + 1..].parse()?;
+
+    Ok((plugin, ctype))
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = Args::parse();
 
@@ -57,25 +79,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.hostname = gethostname().into_string().unwrap();
     }
 
-    let service: Vec<&str> = args.service.split('/').collect();
-
-    if service.len() != 2 {
-        eprintln!("invalid service: {}", args.service);
-        exit(1)
-    }
-
-    for s in &service {
-        if s.len() >= DATA_MAX_LEN {
-            eprintln!("invalid service: {}", *s);
-            exit(1)
-        }
-    }
-
-    event_loop(&args, service)
+    event_loop(&args)
 }
 
-fn event_loop(args: &Args, service: Vec<&str>) -> Result<(), Box<dyn std::error::Error>> {
-    let (plugin, ctype) = (service[0], service[1]);
+fn event_loop(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    let (plugin, ctype) = &args.service;
 
     let mut stdout = io::stdout();
     let stdin = io::stdin();
