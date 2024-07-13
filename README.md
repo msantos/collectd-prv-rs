@@ -4,7 +4,7 @@ collectd-prv *OPTIONS*
 
 # DESCRIPTION
 
-collectd-prv: stdout to collectd notifcations
+collectd-prv: stdout to collectd notifications
 
 collectd-prv converts stdout from a process into collectd notifications,
 optionally acting like a pressure relief valve during event floods.
