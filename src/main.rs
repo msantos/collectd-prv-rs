@@ -93,8 +93,11 @@ fn event_loop(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let mut count = 0;
     let mut id = 1;
 
-    loop {
         let mut buf = String::new();
+
+    loop {
+        buf.clear();
+
         let buflen = match stdin.read_line(&mut buf) {
             Ok(0) => return Ok(()),
             Ok(n) => n,
