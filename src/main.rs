@@ -93,7 +93,7 @@ fn event_loop(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let mut count = 0;
     let mut id = 1;
 
-        let mut buf = String::new();
+    let mut buf = String::new();
 
     loop {
         buf.clear();
